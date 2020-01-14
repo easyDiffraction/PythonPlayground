@@ -1,5 +1,6 @@
 from PySide2.QtWidgets import QUndoStack, QUndoCommand
 
+
 class URDict(dict):
     class _StackCommand(QUndoCommand):
         def __init__(self, dictionary, key, value):
@@ -13,7 +14,7 @@ class URDict(dict):
                 thisKey = thisKey[0]
             if thisKey in dictionary:
                 self._old_value = dictionary[key]
-                
+
             self._new_value = value
 
         def undo(self):
@@ -22,21 +23,15 @@ class URDict(dict):
                 self.setText("     undo command {} - {}:{} = ".format(self._dictionary, self._key, self._new_value))
                 del self._dictionary[self._key]
             else:
-                self._dictionary.__realSet__(self._key, self._old_value)
+                self._dictionary.__realsetitem__(self._key, self._old_value)
 
         def redo(self):
             # self.setText("  do/redo command {} + {}:{} = ".format(self._dictionary, self._key, self._value))
-            self._dictionary.__realSet__(self._key, self._new_value)
+            self._dictionary.__realsetitem__(self._key, self._new_value)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__stack__ = QUndoStack()
-
-    def __realSet__(self, key, val):
-        if isinstance(key, list):
-            self.setByPath(key, val)
-        else:
-            super().__setitem__(key, val)
 
     def __setitem__(self, key, val):
         self.__stack__.push(self._StackCommand(self, key, val))
@@ -45,6 +40,12 @@ class URDict(dict):
         if isinstance(key, list):
             return self.getByPath(key)
         return super().__getitem__(key)
+
+    def __realsetitem__(self, key, val):
+        if isinstance(key, list):
+            self.setByPath(key, val)
+        else:
+            super().__setitem__(key, val)
 
     def undoText(self):
         return self.__stack__.undoText()
@@ -72,7 +73,6 @@ class URDict(dict):
     def setByPath(self, keys, value):
         """Get a value in a nested object in root by key sequence."""
         self.getByPath(keys[:-1])[keys[-1]] = value
-
 
 
 if __name__ == '__main__':
