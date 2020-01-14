@@ -1,33 +1,28 @@
 from PySide2.QtWidgets import QUndoStack, QUndoCommand
 
 class URDict(dict):
-    class _AppendCommand(QUndoCommand):
+    class _StackCommand(QUndoCommand):
         def __init__(self, dictionary, key, value):
             QUndoCommand.__init__(self)
             self._dictionary = dictionary
             self._key = key
-            self._value = value
+            self._old_value = None
 
-        def undo(self):
-            self.setText("     undo command {} - {}:{} = ".format(self._dictionary, self._key, self._value))
-            del self._dictionary[self._key]
-
-        def redo(self):
-            self.setText("  do/redo command {} + {}:{} = ".format(self._dictionary, self._key, self._value))
-            self._dictionary.__realSet__(self._key, self._value)
-
-    class _ModifyCommand(QUndoCommand):
-        def __init__(self, dictionary, key, value):
-            QUndoCommand.__init__(self)
-            self._dictionary = dictionary
-            self._key = key
-            self._old_value = dictionary[key]
+            thisKey = key
+            if isinstance(thisKey, list):
+                thisKey = thisKey[0]
+            if thisKey in dictionary:
+                self._old_value = dictionary[key]
+                
             self._new_value = value
-            self.setText("   modify command")
 
         def undo(self):
             # self.setText("     undo command {} - {}:{} = ".format(self._dictionary, self._key, self._value))
-            self._dictionary.__realSet__(self._key, self._old_value)
+            if self._old_value is None:
+                self.setText("     undo command {} - {}:{} = ".format(self._dictionary, self._key, self._new_value))
+                del self._dictionary[self._key]
+            else:
+                self._dictionary.__realSet__(self._key, self._old_value)
 
         def redo(self):
             # self.setText("  do/redo command {} + {}:{} = ".format(self._dictionary, self._key, self._value))
@@ -44,15 +39,7 @@ class URDict(dict):
             super().__setitem__(key, val)
 
     def __setitem__(self, key, val):
-
-        thisKey = key
-        if isinstance(thisKey, list):
-            thisKey = thisKey[0]
-
-        if thisKey in self.keys():
-            self.__stack__.push(self._ModifyCommand(self, key, val))
-        else:
-            self.__stack__.push(self._AppendCommand(self, key, val))
+        self.__stack__.push(self._StackCommand(self, key, val))
 
     def __getitem__(self, key):
         if isinstance(key, list):
