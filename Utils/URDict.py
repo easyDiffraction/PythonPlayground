@@ -4,7 +4,7 @@ from PySide2.QtWidgets import QUndoStack, QUndoCommand
 
 
 class URDict(dict):
-    class _StackCommand(QUndoCommand):
+    class __SingleStackCommand__(QUndoCommand):
         def __init__(self, dictionary: dict, key: str, value: Any):
             QUndoCommand.__init__(self)
             self._dictionary = dictionary
@@ -31,19 +31,31 @@ class URDict(dict):
             # self.setText("  do/redo command {} + {}:{} = ".format(self._dictionary, self._key, self._value))
             self._dictionary.__realsetitem__(self._key, self._new_value)
 
+    class __MultiStackCommand__(QUndoCommand):
+        def __init__(self, dictionary, key: str):
+            QUndoCommand.__init__(self)
+            self._key = key
+            self._dict = dictionary
+
+        def undo(self) -> NoReturn:
+            self._dict[self._key].undo()
+
+        def redo(self) -> NoReturn:
+            self._dict[self._key].redo()
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__stack__ = QUndoStack()
 
     def __setitem__(self, key: str, val: Any) -> NoReturn:
-        self.__stack__.push(self._StackCommand(self, key, val))
+        self.__stack__.push(self.__SingleStackCommand__(self, key, val))
 
     def __getitem__(self, key: Union[str, List]) -> Any:
         if isinstance(key, list):
             return self.getByPath(key)
         return super().__getitem__(key)
 
-    def __realsetitem__(self, key: Union[str, List], val: Any):
+    def __realsetitem__(self, key: Union[str, List], val: Any) -> NoReturn:
         if isinstance(key, list):
             self.setByPath(key, val)
         else:
