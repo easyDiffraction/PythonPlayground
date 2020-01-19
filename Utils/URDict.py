@@ -46,6 +46,7 @@ class URDict(dict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__stack__ = QUndoStack()
+        self._macroRunning = False
 
     def __setitem__(self, key: str, val: Any) -> NoReturn:
         self.__stack__.push(self.__SingleStackCommand__(self, key, val))
@@ -87,3 +88,12 @@ class URDict(dict):
     def setByPath(self, keys: List, value: Any) -> NoReturn:
         """Get a value in a nested object in root by key sequence."""
         self.getByPath(keys[:-1])[keys[-1]] = value
+
+
+    def startBulkUpdate(self) -> NoReturn:
+        self.__stack__.beginMacro('Bulk update')
+        self._macroRunning = True
+
+    def endBulkUpdate(self) -> NoReturn:
+        self.__stack__.endMacro()
+        self._macroRunning = False
