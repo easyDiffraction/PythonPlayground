@@ -1,4 +1,5 @@
 from typing import Union, Any, NoReturn, List
+from collections import UserDict
 
 from PySide2.QtWidgets import QUndoStack, QUndoCommand
 
@@ -47,17 +48,16 @@ class _SetItemCommand(_EmptyCommand):
         self._dictionary._realSetItem(self._key, self._new_value)
 
 
-class URDict(dict):
+class URDict(UserDict):
     """
     The URDict class implements a dictionary-based class with undo/redo
     functionality based on QUndoStack.
     """
 
     # URDict constructor
-
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self._stack = QUndoStack()
+        super().__init__(*args, **kwargs)
 
     # Private URDict dictionary-based methods to be called via the QUndoCommand-based classes.
 
@@ -89,10 +89,6 @@ class URDict(dict):
             self._stack.push(_SetItemCommand(self, key, val))
         else:
             self._stack.push(_AddItemCommand(self, key, val))
-
-    def __getitem__(self, key: str) -> Any:
-        """Overrides default evaluation of self[key] implementation."""
-        return super().__getitem__(key)
 
     def setItemByPath(self, keys: list, value: Any) -> NoReturn:
         """Calls the undoable command to set a value in a nested object
