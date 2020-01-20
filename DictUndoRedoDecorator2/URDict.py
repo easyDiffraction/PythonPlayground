@@ -9,7 +9,7 @@ class _EmptyCommand(QUndoCommand):
     stored on a QUndoStack.
     """
 
-    def __init__(self, dictionary: dict, key: str, value: Any):
+    def __init__(self, dictionary: 'URDict', key: Union[str, list], value: Any):
         QUndoCommand.__init__(self)
         self._dictionary = dictionary
         self._key = key
@@ -76,7 +76,7 @@ class URDict(dict):
         """Actually deletes a key-value pair from dictionary."""
         del self[key]
 
-    def _realSetItemByPath(self, keys: List, value: Any) -> NoReturn:
+    def _realSetItemByPath(self, keys: list, value: Any) -> NoReturn:
         """Actually sets the value in a nested object by the key sequence."""
         self.getItemByPath(keys[:-1])[keys[-1]] = value
 
@@ -94,12 +94,12 @@ class URDict(dict):
         """Overrides default evaluation of self[key] implementation."""
         return super().__getitem__(key)
 
-    def setItemByPath(self, keys: List, value: Any) -> NoReturn:
+    def setItemByPath(self, keys: list, value: Any) -> NoReturn:
         """Calls the undoable command to set a value in a nested object
         by key sequence and pushes this command on the stack."""
         self._stack.push(_SetItemCommand(self, keys, value))
 
-    def getItemByPath(self, keys: List, default=None) -> Any:
+    def getItemByPath(self, keys: list, default=None) -> Any:
         """Returns a value in a nested object by key sequence."""
         item = self
         for key in keys:
@@ -109,7 +109,7 @@ class URDict(dict):
                 return default
         return item
 
-    def getItem(self, key: Union[str, List], default=None):
+    def getItem(self, key: Union[str, list], default=None):
         """Returns a value in a nested object. Key can be either a sequence
         or a simple string."""
         if isinstance(key, list):
