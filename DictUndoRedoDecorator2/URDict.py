@@ -57,6 +57,7 @@ class URDict(UserDict):
     def __init__(self, *args, **kwargs):
         self._stack = QUndoStack()
         super().__init__(*args, **kwargs)
+        self._macroRunning = False
 
     # Private URDict dictionary-based methods to be called via the QUndoCommand-based classes.
 
@@ -131,3 +132,19 @@ class URDict(UserDict):
     def redo(self) -> NoReturn:
         """Redoes the current command on stack."""
         self._stack.redo()
+
+    def startBulkUpdate(self, text='Bulk update') -> NoReturn:
+        """Begins composition of a macro command with the given text description."""
+        if self._macroRunning:
+            print('Macro already running')
+            return
+        self._stack.beginMacro(text)
+        self._macroRunning = True
+
+    def endBulkUpdate(self) -> NoReturn:
+        """Ends composition of a macro command."""
+        if not self._macroRunning:
+            print('Macro not running')
+            return
+        self._stack.endMacro()
+        self._macroRunning = False

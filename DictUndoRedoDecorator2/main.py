@@ -116,3 +116,29 @@ if __name__ == '__main__':
     print("\n-10 ", test)
     print("Undo", test.undoText())
     print("Redo", test.redoText())
+
+    print("\n****Test phase 3****")
+
+    test = URDict(dict(a=1, b=2, c=dict(d=3, e=dict(f=4, g=5))))
+    print("\n-1 ", test)
+    print("Undo", test.undoText())
+    print("Redo", test.redoText())
+
+    test.startBulkUpdate()
+
+    test['a'] = "---"
+    print("\n-2 ", test)
+    print("Undo", test.undoText())
+    print("Redo", test.redoText())
+
+    test.setItemByPath(['c', 'e', 'g'], '***')
+    print("\n-2 ", test)
+    print("Undo", test.undoText())
+    print("Redo", test.redoText())
+
+    test.endBulkUpdate()
+
+    test.undo()
+    print("\n-3 ", test)
+    print("Undo", test.undoText())
+    print("Redo", test.redoText())
