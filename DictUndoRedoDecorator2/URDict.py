@@ -54,7 +54,6 @@ class URDict(UserDict):
     functionality based on QUndoStack.
     """
 
-    # URDict constructor
     def __init__(self, *args, **kwargs):
         self._stack = QUndoStack()
         super().__init__(*args, **kwargs)
