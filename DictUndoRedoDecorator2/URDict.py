@@ -126,10 +126,8 @@ class URDict(UserDict):
 
     def undo(self) -> NoReturn:
         """Undoes the current command on stack."""
-        print("\nUndo command is called")
         self._stack.undo()
 
     def redo(self) -> NoReturn:
         """Redoes the current command on stack."""
-        print("\nRedo command is called")
         self._stack.redo()
