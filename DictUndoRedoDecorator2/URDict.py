@@ -25,7 +25,7 @@ class _AddItemCommand(_EmptyCommand):
     """
 
     def undo(self) -> NoReturn:
-        self.setText("Deleting: {}".format(self._key))
+        self.setText("Adding: {} = {}".format(self._key, self._new_value))
         self._dictionary._realDelItem(self._key)
 
     def redo(self) -> NoReturn:
