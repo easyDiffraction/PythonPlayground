@@ -53,9 +53,15 @@ class stackable:
                 self.stack.push(AppendCommand(thisDict, key, val))
         return inner
 
+    def _delWrapper(self, func):
+        def inner(dict, key):
+            dict._realDelItem(key)
+        return inner
+
 class MyDict(dict):
 
     stack = stackable()
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -65,6 +71,14 @@ class MyDict(dict):
     @stack._myWrapper
     def __setitem__(self, key, val):
         pass
+
+    @stack._delWrapper
+    def __delitem__(self, key):
+        pass
+
+    def _realDelItem(self, key):
+        super().__delitem__(key)
+
 
     def undoText(self):
         return self.stack.stack.undoText()
@@ -85,7 +99,7 @@ if __name__ == '__main__':
     print(test)
     test['c'] = 'CCC'
     print(test.undoText(), test)
-    test['d']= 'DDD'
+    test['d'] = 'DDD'
     print(test.undoText(), test)
 
     test.undo()

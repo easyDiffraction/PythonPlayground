@@ -1,9 +1,9 @@
-from URDict import URDict
+from DictTools.DictTools import UndoableDict
 
 
 def test_non_nested_dict():
 
-    d = URDict()
+    d = UndoableDict()
 
     # Add item
 
@@ -85,7 +85,7 @@ def test_nested_dict():
 
     # Add item
 
-    d = URDict(dict(a=1, b=2, c=dict(d=3, e=dict(f=4, g=5))))
+    d = UndoableDict(dict(a=1, b=2, c=dict(d=3, e=dict(f=4, g=5))))
     d.stack.clear()
     assert d.stack.undoText() == ""
     assert d.stack.redoText() == ""
@@ -125,7 +125,7 @@ def test_bulk_update():
 
     # Add item
 
-    d = URDict(dict(a=1, b=2, c=dict(d=3, e=dict(f=4, g=5))))
+    d = UndoableDict(dict(a=1, b=2, c=dict(d=3, e=dict(f=4, g=5))))
     d.stack.clear()
     assert d.stack.undoText() == ""
     assert d.stack.redoText() == ""

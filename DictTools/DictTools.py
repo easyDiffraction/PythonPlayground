@@ -10,7 +10,7 @@ class _EmptyCommand(QUndoCommand):
     stored on a QUndoStack.
     """
 
-    def __init__(self, dictionary: 'URDict', key: Union[str, list], value: Any):
+    def __init__(self, dictionary: 'UndoableDict', key: Union[str, list], value: Any):
         QUndoCommand.__init__(self)
         self._dictionary = dictionary
         self._key = key
@@ -21,10 +21,10 @@ class _EmptyCommand(QUndoCommand):
 class _AddItemCommand(_EmptyCommand):
     """
     The _AddItemCommand class implements a command to add a key-value pair to
-    the URDict-based dictionary.
+    the UndoableDict-based dictionary.
     """
 
-    def __init__(self, dictionary: 'URDict', key: Union[str, list], value: Any):
+    def __init__(self, dictionary: 'UndoableDict', key: Union[str, list], value: Any):
         super().__init__(dictionary, key, value)
         self.setText("Adding: {} = {}".format(self._key, self._new_value))
 
@@ -38,10 +38,10 @@ class _AddItemCommand(_EmptyCommand):
 class _SetItemCommand(_EmptyCommand):
     """
     The _SetItemCommand class implements a command to modify the value of
-    the existing key in the URDict-based dictionary.
+    the existing key in the UndoableDict-based dictionary.
     """
 
-    def __init__(self, dictionary: 'URDict', key: Union[str, list], value: Any):
+    def __init__(self, dictionary: 'UndoableDict', key: Union[str, list], value: Any):
         super().__init__(dictionary, key, value)
         self.setText("Setting: {} = {}".format(self._key, self._new_value))
 
@@ -53,7 +53,7 @@ class _SetItemCommand(_EmptyCommand):
 
 
 class PathDict(UserDict):
-    # Private URDict dictionary-based methods to be called via the QUndoCommand-based classes.
+    # Private UndoableDict dictionary-based methods to be called via the QUndoCommand-based classes.
     def __setitem__(self, key: str, val: Any) -> NoReturn:
         """Overrides default dictionary assignment to self[key] implementation.
         Calls the undoable command and pushes this command on the stack."""
@@ -113,9 +113,9 @@ class PathDict(UserDict):
             return self.get(key, default)
 
 
-class URDict(myDict):
+class UndoableDict(PathDict):
     """
-    The URDict class implements a dictionary-based class with undo/redo
+    The UndoableDict class implements a dictionary-based class with undo/redo
     functionality based on QUndoStack.
     """
 

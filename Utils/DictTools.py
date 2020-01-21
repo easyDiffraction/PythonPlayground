@@ -10,7 +10,7 @@ class _EmptyCommand(QUndoCommand):
     stored on a QUndoStack.
     """
 
-    def __init__(self, dictionary: 'URDict', key: Union[str, list], value: Any):
+    def __init__(self, dictionary: 'UndoableDict', key: Union[str, list], value: Any):
         QUndoCommand.__init__(self)
         self._dictionary = dictionary
         self._key = key
@@ -21,36 +21,39 @@ class _EmptyCommand(QUndoCommand):
 class _AddItemCommand(_EmptyCommand):
     """
     The _AddItemCommand class implements a command to add a key-value pair to
-    the URDict-based dictionary.
+    the UndoableDict-based dictionary.
     """
 
+    def __init__(self, dictionary: 'UndoableDict', key: Union[str, list], value: Any):
+        super().__init__(dictionary, key, value)
+        self.setText("Adding: {} = {}".format(self._key, self._new_value))
+
     def undo(self) -> NoReturn:
-        self.setText("Deleting: {}".format(self._key))
         self._dictionary._realDelItem(self._key)
 
     def redo(self) -> NoReturn:
-        self.setText("Adding: {} = {}".format(self._key, self._new_value))
         self._dictionary._realAddItem(self._key, self._new_value)
 
 
 class _SetItemCommand(_EmptyCommand):
     """
     The _SetItemCommand class implements a command to modify the value of
-    the existing key in the URDict-based dictionary.
+    the existing key in the UndoableDict-based dictionary.
     """
 
+    def __init__(self, dictionary: 'UndoableDict', key: Union[str, list], value: Any):
+        super().__init__(dictionary, key, value)
+        self.setText("Setting: {} = {}".format(self._key, self._new_value))
+
     def undo(self) -> NoReturn:
-        self.setText("Setting: {} = {}".format(self._key, self._old_value))
         self._dictionary._realSetItem(self._key, self._old_value)
 
     def redo(self) -> NoReturn:
-        self.setText("Setting: {} = {}".format(self._key, self._new_value))
         self._dictionary._realSetItem(self._key, self._new_value)
 
 
-class myDict(UserDict):
-
-    # Private URDict dictionary-based methods to be called via the QUndoCommand-based classes.
+class PathDict(UserDict):
+    # Private UndoableDict dictionary-based methods to be called via the QUndoCommand-based classes.
     def __setitem__(self, key: str, val: Any) -> NoReturn:
         """Overrides default dictionary assignment to self[key] implementation.
         Calls the undoable command and pushes this command on the stack."""
@@ -58,6 +61,14 @@ class myDict(UserDict):
             self._realSetItem(key, val)
         else:
             self._realAddItem(key, val)
+
+    def setItem(self, key: Union[str, list], value: Any) -> NoReturn:
+        """Calls the undoable command to set a value in a nested object
+        by key sequence and pushes this command on the stack."""
+        if isinstance(key, list):
+            self.setItemByPath(key, value)
+        else:
+            self[key] = value
 
     def setItemByPath(self, keys: list, value: Any) -> NoReturn:
         """Calls the undoable command to set a value in a nested object
@@ -102,65 +113,27 @@ class myDict(UserDict):
             return self.get(key, default)
 
 
-class URDict(myDict):
+class UndoableDict(PathDict):
     """
-    The URDict class implements a dictionary-based class with undo/redo
+    The UndoableDict class implements a dictionary-based class with undo/redo
     functionality based on QUndoStack.
     """
 
-    # URDict constructor
     def __init__(self, *args, **kwargs):
-        self._stack = QUndoStack()
-        self._macroRunning = False
+        self.stack = QUndoStack()
         super().__init__(*args, **kwargs)
 
-    # Public URDict dictionary-based methods
+    # Public dictionary-based methods
 
     def __setitem__(self, key: str, val: Any) -> NoReturn:
         """Overrides default dictionary assignment to self[key] implementation.
         Calls the undoable command and pushes this command on the stack."""
         if key in self:
-            self._stack.push(_SetItemCommand(self, key, val))
+            self.stack.push(_SetItemCommand(self, key, val))
         else:
-            self._stack.push(_AddItemCommand(self, key, val))
+            self.stack.push(_AddItemCommand(self, key, val))
 
     def setItemByPath(self, keys: list, value: Any) -> NoReturn:
         """Calls the undoable command to set a value in a nested object
         by key sequence and pushes this command on the stack."""
-        self._stack.push(_SetItemCommand(self, keys, value))
-
-    # Public URDict undostack-based methods
-
-    def undoText(self) -> NoReturn:
-        """Returns the text of the command which will be undone in the next
-        call to undo()."""
-        return self._stack.undoText()
-
-    def redoText(self) -> NoReturn:
-        """Returns the text of the command which will be redone in the next
-        call to redo()."""
-        return self._stack.redoText()
-
-    def undo(self) -> NoReturn:
-        """Undoes the current command on stack."""
-        print("\nUndo command is called")
-        self._stack.undo()
-
-    def redo(self) -> NoReturn:
-        """Redoes the current command on stack."""
-        print("\nRedo command is called")
-        self._stack.redo()
-
-    def startBulkUpdate(self) -> NoReturn:
-        if self._macroRunning:
-            print('Macro already running')
-            return
-        self._stack.beginMacro('Bulk update')
-        self._macroRunning = True
-
-    def endBulkUpdate(self) -> NoReturn:
-        if not self._macroRunning:
-            print('Macro not running')
-            return
-        self._stack.endMacro()
-        self._macroRunning = False
+        self.stack.push(_SetItemCommand(self, keys, value))

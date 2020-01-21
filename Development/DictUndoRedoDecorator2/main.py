@@ -1,4 +1,4 @@
-from URDict import URDict
+from DictUndoRedoDecorator2.URDict import URDict
 
 
 if __name__ == '__main__':
