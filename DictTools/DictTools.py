@@ -59,6 +59,7 @@ class PathDict(UserDict):
     """
 
     # Private UndoableDict dictionary-based methods to be called via the QUndoCommand-based classes.
+
     def __setitem__(self, key: str, val: Any) -> NoReturn:
         """Overrides default dictionary assignment to self[key] implementation.
         Calls the undoable command and pushes this command on the stack."""
@@ -99,6 +100,8 @@ class PathDict(UserDict):
         """Actually sets the value in a nested object by the key sequence."""
         self.getItemByPath(keys[:-1])[keys[-1]] = value
 
+    # Public dictionary-based methods
+
     def getItemByPath(self, keys: list, default=None) -> Any:
         """Returns a value in a nested object by key sequence."""
         item = self
@@ -120,7 +123,7 @@ class PathDict(UserDict):
 
 class UndoableDict(PathDict):
     """
-    The UndoableDict class implements a dictionary-based class with undo/redo
+    The UndoableDict class implements a PathDict-based class with undo/redo
     functionality based on QUndoStack.
     """
 
