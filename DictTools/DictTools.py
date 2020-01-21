@@ -53,6 +53,11 @@ class _SetItemCommand(_EmptyCommand):
 
 
 class PathDict(UserDict):
+    """
+    The PathDict class extends a python dictionary with methods to access its nested
+    elements by list-based path of keys.
+    """
+
     # Private UndoableDict dictionary-based methods to be called via the QUndoCommand-based classes.
     def __setitem__(self, key: str, val: Any) -> NoReturn:
         """Overrides default dictionary assignment to self[key] implementation.
