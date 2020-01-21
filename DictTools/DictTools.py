@@ -1,3 +1,4 @@
+import pytest
 from typing import Union, Any, NoReturn, List
 from collections import UserDict
 
@@ -142,3 +143,7 @@ class UndoableDict(PathDict):
         """Calls the undoable command to set a value in a nested object
         by key sequence and pushes this command on the stack."""
         self.stack.push(_SetItemCommand(self, keys, value))
+
+
+if __name__ == "__main__":
+    pytest.main(["-v"])
