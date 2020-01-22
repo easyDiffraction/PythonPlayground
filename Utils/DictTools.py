@@ -1,5 +1,6 @@
 from typing import Union, Any, NoReturn, List
 from collections import UserDict
+from copy import deepcopy
 
 from PySide2.QtWidgets import QUndoStack, QUndoCommand
 
@@ -16,6 +17,7 @@ class _EmptyCommand(QUndoCommand):
         self._key = key
         self._new_value = value
         self._old_value = dictionary.getItem(key)
+        #print(f"dict: {id(self._dictionary)}, key: {id(self._key)}, new val: {id(self._old_value)}, old val: {id(self._old_value)}")
 
 
 class _AddItemCommand(_EmptyCommand):
@@ -53,27 +55,12 @@ class _SetItemCommand(_EmptyCommand):
 
 
 class PathDict(UserDict):
-    # Private UndoableDict dictionary-based methods to be called via the QUndoCommand-based classes.
-    def __setitem__(self, key: str, val: Any) -> NoReturn:
-        """Overrides default dictionary assignment to self[key] implementation.
-        Calls the undoable command and pushes this command on the stack."""
-        if key in self:
-            self._realSetItem(key, val)
-        else:
-            self._realAddItem(key, val)
+    """
+    The PathDict class extends a python dictionary with methods to access its nested
+    elements by list-based path of keys.
+    """
 
-    def setItem(self, key: Union[str, list], value: Any) -> NoReturn:
-        """Calls the undoable command to set a value in a nested object
-        by key sequence and pushes this command on the stack."""
-        if isinstance(key, list):
-            self.setItemByPath(key, value)
-        else:
-            self[key] = value
-
-    def setItemByPath(self, keys: list, value: Any) -> NoReturn:
-        """Calls the undoable command to set a value in a nested object
-        by key sequence and pushes this command on the stack."""
-        self._realSetItem(keys, value)
+    # Private methods
 
     def _realSetItem(self, key: Union[str, List], value: Any) -> NoReturn:
         """Actually changes the value for the existing key in dictionary."""
@@ -94,6 +81,26 @@ class PathDict(UserDict):
         """Actually sets the value in a nested object by the key sequence."""
         self.getItemByPath(keys[:-1])[keys[-1]] = value
 
+    # Public methods
+
+    def __setitem__(self, key: str, val: Any) -> NoReturn:
+        """Overrides default dictionary assignment to self[key] implementation."""
+        if key in self:
+            self._realSetItem(key, val)
+        else:
+            self._realAddItem(key, val)
+
+    def setItemByPath(self, keys: list, value: Any) -> NoReturn:
+        """Set a value in a nested object by key sequence."""
+        self._realSetItem(keys, value)
+
+    def setItem(self, key: Union[str, list], value: Any) -> NoReturn:
+        """Set a value in a nested object by key sequence or by simple key."""
+        if isinstance(key, list):
+            self.setItemByPath(key, value)
+        else:
+            self[key] = value
+
     def getItemByPath(self, keys: list, default=None) -> Any:
         """Returns a value in a nested object by key sequence."""
         item = self
@@ -112,28 +119,61 @@ class PathDict(UserDict):
         else:
             return self.get(key, default)
 
+    def toDict(self) -> dict:
+        baseD = deepcopy(self.data)
+        for key in baseD.keys():
+            item = baseD[key]
+            if hasattr(item, 'toBase'):
+                baseD[key] = item.toBase()
+        return baseD
+
 
 class UndoableDict(PathDict):
     """
-    The UndoableDict class implements a dictionary-based class with undo/redo
+    The UndoableDict class implements a PathDict-based class with undo/redo
     functionality based on QUndoStack.
     """
 
     def __init__(self, *args, **kwargs):
-        self.stack = QUndoStack()
+        self.__stack = QUndoStack()
+        self._macroRunning = False
         super().__init__(*args, **kwargs)
 
-    # Public dictionary-based methods
+    # Public methods
 
     def __setitem__(self, key: str, val: Any) -> NoReturn:
-        """Overrides default dictionary assignment to self[key] implementation.
-        Calls the undoable command and pushes this command on the stack."""
+        """Calls the undoable command to override PathDict assignment to self[key]
+        implementation and pushes this command on the stack."""
         if key in self:
-            self.stack.push(_SetItemCommand(self, key, val))
+            self.__stack.push(_SetItemCommand(self, key, val))
         else:
-            self.stack.push(_AddItemCommand(self, key, val))
+            self.__stack.push(_AddItemCommand(self, key, val))
 
     def setItemByPath(self, keys: list, value: Any) -> NoReturn:
         """Calls the undoable command to set a value in a nested object
         by key sequence and pushes this command on the stack."""
-        self.stack.push(_SetItemCommand(self, keys, value))
+        self.__stack.push(_SetItemCommand(self, keys, value))
+
+    def undo(self) -> NoReturn:
+        """Undoes the current command on stack."""
+        self.__stack.undo()
+
+    def redo(self) -> NoReturn:
+        """Redoes the current command on stack."""
+        self.__stack.redo()
+
+    def startBulkUpdate(self, text='Bulk update') -> NoReturn:
+        """Begins composition of a macro command with the given text description."""
+        if self._macroRunning:
+            print('Macro already running')
+            return
+        self.__stack.beginMacro(text)
+        self._macroRunning = True
+
+    def endBulkUpdate(self) -> NoReturn:
+        """Ends composition of a macro command."""
+        if not self._macroRunning:
+            print('Macro not running')
+            return
+        self.__stack.endMacro()
+        self._macroRunning = False
