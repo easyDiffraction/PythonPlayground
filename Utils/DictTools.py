@@ -1,3 +1,6 @@
+import pytest
+from ast import literal_eval
+from deepdiff import DeepDiff
 from typing import Union, Any, NoReturn, List, Iterable, Tuple
 from collections import UserDict
 from copy import deepcopy
@@ -23,7 +26,7 @@ class _EmptyCommand(QUndoCommand):
 class _AddItemCommand(_EmptyCommand):
     """
     The _AddItemCommand class implements a command to add a key-value pair to
-    the UndoableDict-based dictionary.
+    the UndoableDict-base_dict dictionary.
     """
 
     def __init__(self, dictionary: 'UndoableDict', key: Union[str, list], value: Any):
@@ -40,7 +43,7 @@ class _AddItemCommand(_EmptyCommand):
 class _SetItemCommand(_EmptyCommand):
     """
     The _SetItemCommand class implements a command to modify the value of
-    the existing key in the UndoableDict-based dictionary.
+    the existing key in the UndoableDict-base_dict dictionary.
     """
 
     def __init__(self, dictionary: 'UndoableDict', key: Union[str, list], value: Any):
@@ -57,7 +60,7 @@ class _SetItemCommand(_EmptyCommand):
 class PathDict(UserDict):
     """
     The PathDict class extends a python dictionary with methods to access its nested
-    elements by list-based path of keys.
+    elements by list-base_dict path of keys.
     """
 
     # Private methods
@@ -120,88 +123,48 @@ class PathDict(UserDict):
             return self.get(key, default)
 
     def asDict(self) -> dict:
-        baseD = deepcopy(self.data)
-        for key in baseD.keys():
-            item = baseD[key]
+        """Returns self as a python dictionary."""
+        base_dict = deepcopy(self.data)
+        for key in base_dict.keys():
+            item = base_dict[key]
             if hasattr(item, 'asDict'):
-                baseD[key] = item.asDict()
-        return baseD
+                base_dict[key] = item.asDict()
+        return base_dict
 
-    def dictComparison(self, new_dict: Union['PathDict', dict]) -> Tuple[list, list]:
+    def dictComparison(self, another_dict: Union['PathDict', dict]) -> Tuple[list, list]:
         """
         Compare self to a dictionary or PathDict and return the update path and value
-        :param new_dict: dict or PathDict to compare self to
+        :param another_dict: dict or PathDict to compare self to
         :return: path and value updates for self to become newDict
         """
-        def dictIterator(old_dict_in: dict, new_dict_in: dict) -> Tuple[list, list]:
-            """
-            Iterate through a dict and find all comparisons
-            :param old_dict_in: Base dictionary
-            :param new_dict_in: dictionary to compare to base dictionary
-            :return: list of update locations and list of update values
-            """
-            keyList = []
-            itemList = []
-            for key, item in new_dict_in.items():
-                if key not in old_dict_in.keys():
-                    # The field does not exist in the old dict
-                    keyList.append(key)
-                    itemList.append(item)
-                else:
-                    # The key exists in both dicts
-                    tempItem = old_dict_in[key]
-                    if isinstance(item, dict):
-                        # Its a dictionary, so we have to call `dictComparison` again
-                        nestedKeyList, nestedItemList = dictIterator(tempItem, item)
-                        if len(nestedKeyList) > 0:
-                            keyList.append([key, nestedKeyList])
-                            itemList.append(nestedItemList)
-                    else:
-                        # We know that we're left with objects and numbers strings etc
-                        if item is not tempItem:
-                            # They are not the same. Boo
-                            keyList.append(key)
-                            itemList.append(item)
-            return keyList, itemList
 
-        def prettyKey(keylist: list) -> list:
-            """
-            Makes the key list into a UndoableDict path
-            """
-            for i, key in enumerate(keylist):
-                if isinstance(key, list):
-                    if len(key) == 1:
-                        keylist[i] = key[0]
-                    else:
-                        keylist[i] = prettyKey(key)
-            return keylist
+        if not isinstance(another_dict, (PathDict, dict)):
+            raise TypeError
 
-        def flatten(items: list) -> list:
-            """
-            Yield items from any nested iterable
-            """
-            if isinstance(items, Iterable) and not isinstance(items, (str, bytes)):
-                for item in items:
-                    if isinstance(item, Iterable) and not isinstance(item, (str, bytes)):
-                        for sub_x in flatten(item):
-                            yield sub_x
-                    else:
-                        yield item
-            else:
-                yield items
-        # TODO check if `obj.asDict()` is needed. Probably not...
-        if isinstance(new_dict, PathDict):
-            new_dict = new_dict.asDict()
-        keyList, itemList = dictIterator(self.asDict(), new_dict)
-        itemList = flatten(itemList)
-        keyList = prettyKey(keyList)
-        return keyList, itemList
+        this_dict = self.asDict()
+        if isinstance(another_dict, PathDict):
+            another_dict = another_dict.asDict()
+
+        diff = DeepDiff(this_dict, another_dict)
+
+        key_list = []
+        value_list = []
+        if 'values_changed' in diff:
+            for path, values in diff['values_changed'].items():
+                key_list.append(literal_eval(path.replace("root", "").replace('][', ",")))
+                value_list.append(values['new_value'])
+        if 'type_changes' in diff:
+            for path, values in diff['type_changes'].items():
+                key_list.append(literal_eval(path.replace("root", "").replace('][', ",")))
+                value_list.append(values['new_value'])
+
+        return key_list, value_list
 
 
 class UndoableDict(PathDict):
     """
-    The UndoableDict class implements a PathDict-based class with undo/redo
-    functionality based on QUndoStack.
+    The UndoableDict class implements a PathDict-base_dict class with undo/redo
+    functionality base_dict on QUndoStack.
     """
 
     def __init__(self, *args, **kwargs):
@@ -209,7 +172,7 @@ class UndoableDict(PathDict):
         self._macroRunning = False
         super().__init__(*args, **kwargs)
 
-    # Public methods
+    # Public methods: dictionary-related
 
     def __setitem__(self, key: str, val: Any) -> NoReturn:
         """
@@ -227,6 +190,29 @@ class UndoableDict(PathDict):
         by key sequence and pushes this command on the stack.
         """
         self.__stack.push(_SetItemCommand(self, keys, value))
+
+    # Public methods: undo/redo-related
+
+    def clearUndoStack(self) -> NoReturn:
+        """
+        Clears the command stack by deleting all commands on it, and
+        returns the stack to the clean state.
+        """
+        self.__stack.clear()
+
+    def canUndo(self) -> bool:
+        """
+        :return true if there is a command available for undo;
+        otherwise returns false.
+        """
+        return self.__stack.canUndo()
+
+    def canRedo(self) -> bool:
+        """
+        :return true if there is a command available for redo;
+        otherwise returns false.
+        """
+        return self.__stack.canRedo()
 
     def undo(self) -> NoReturn:
         """
@@ -272,14 +258,31 @@ class UndoableDict(PathDict):
         self.__stack.endMacro()
         self._macroRunning = False
 
-    def bulkUpdate(self, key_list: list, item_list: list) -> NoReturn:
+    def bulkUpdate(self, key_list: list, item_list: list, text='Bulk update') -> NoReturn:
         """
-        Performs a bulk update based on a list of keys and a list of values
+        Performs a bulk update base_dict on a list of keys and a list of values
         :param key_list: list of keys or path keys to be updated
         :param item_list: the value to be updated
         :return: None
         """
-        self.startBulkUpdate()
+        self.startBulkUpdate(text)
         for key, value in zip(key_list, item_list):
             self.setItemByPath(key, value)
         self.endBulkUpdate()
+
+
+if __name__ == "__main__":
+    # Run unit tests
+    #pytest.main(["-v"])
+
+    d1 = PathDict(dict(a=1, b=2, c=dict(d=3, e=dict(f=4, g=5))))
+    d2 = PathDict(dict(a=1, b=2, c=dict(d=333, e=dict(f=4, g=555))))
+    print("A", d1.dictComparison(d2))
+
+    d1 = PathDict(dict(a=1, b=2, c=dict(d=3, e=dict(f=4, g=5))))
+    d2 = {'a': 1, 'b': 2, 'c': {'d': 333, 'e': {'f': 4, 'g': 555}}}
+    print("B", d1.dictComparison(d2))
+
+    d1 = PathDict(dict(a=1, b=2, c=dict(d=3, e=dict(f=4, g=5))))
+    d2 = "string"
+    print("C", d1.dictComparison(d2))
