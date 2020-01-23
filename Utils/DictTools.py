@@ -149,14 +149,16 @@ class PathDict(UserDict):
 
         key_list = []
         value_list = []
-        if 'values_changed' in diff:
-            for path, values in diff['values_changed'].items():
-                key_list.append(literal_eval(path.replace("root", "").replace('][', ",")))
-                value_list.append(values['new_value'])
-        if 'type_changes' in diff:
-            for path, values in diff['type_changes'].items():
-                key_list.append(literal_eval(path.replace("root", "").replace('][', ",")))
-                value_list.append(values['new_value'])
+        required_key_list = ['type_changes', 'values_changed']
+        for required_key in required_key_list:
+            if required_key not in diff:
+                continue
+            for path, values in diff[required_key].items():
+                string_path = path.replace("root", "").replace('][', ",")
+                list_path = literal_eval(string_path)
+                new_value = values['new_value']
+                key_list.append(list_path)
+                value_list.append(new_value)
 
         return key_list, value_list
 
@@ -283,6 +285,3 @@ if __name__ == "__main__":
     d2 = {'a': 1, 'b': 2, 'c': {'d': 333, 'e': {'f': 4, 'g': 555}}}
     print("B", d1.dictComparison(d2))
 
-    d1 = PathDict(dict(a=1, b=2, c=dict(d=3, e=dict(f=4, g=5))))
-    d2 = "string"
-    print("C", d1.dictComparison(d2))
