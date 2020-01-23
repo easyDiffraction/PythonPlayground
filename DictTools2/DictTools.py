@@ -253,14 +253,14 @@ class UndoableDict(PathDict):
         self.__stack.endMacro()
         self._macroRunning = False
 
-    def bulkUpdate(self, key_list: list, item_list: list) -> NoReturn:
+    def bulkUpdate(self, key_list: list, item_list: list, text='Bulk update') -> NoReturn:
         """
         Performs a bulk update base_dict on a list of keys and a list of values
         :param key_list: list of keys or path keys to be updated
         :param item_list: the value to be updated
         :return: None
         """
-        self.startBulkUpdate()
+        self.startBulkUpdate(text)
         for key, value in zip(key_list, item_list):
             self.setItemByPath(key, value)
         self.endBulkUpdate()
