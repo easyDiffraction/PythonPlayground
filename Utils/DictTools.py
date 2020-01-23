@@ -180,17 +180,22 @@ class PathDict(UserDict):
             """
             Yield items from any nested iterable
             """
-            for item in items:
-                if isinstance(item, Iterable) and not isinstance(item, (str, bytes)):
-                    for sub_x in flatten(item):
-                        yield sub_x
-                else:
-                    yield item
+            if isinstance(items, Iterable) and not isinstance(items, (str, bytes)):
+                for item in items:
+                    if isinstance(item, Iterable) and not isinstance(item, (str, bytes)):
+                        for sub_x in flatten(item):
+                            yield sub_x
+                    else:
+                        yield item
+            else:
+                yield items
         # TODO check if `obj.asDict()` is needed. Probably not...
         if isinstance(new_dict, PathDict):
             new_dict = new_dict.asDict()
         keyList, itemList = dictIterator(self.asDict(), new_dict)
-        return prettyKey(keyList), list(flatten(itemList))
+        itemList = flatten(itemList)
+        keyList = prettyKey(keyList)
+        return keyList, itemList
 
 
 class UndoableDict(PathDict):
