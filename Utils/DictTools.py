@@ -119,12 +119,12 @@ class PathDict(UserDict):
         else:
             return self.get(key, default)
 
-    def toDict(self) -> dict:
+    def asDict(self) -> dict:
         baseD = deepcopy(self.data)
         for key in baseD.keys():
             item = baseD[key]
-            if hasattr(item, 'toBase'):
-                baseD[key] = item.toBase()
+            if hasattr(item, 'asDict'):
+                baseD[key] = item.asDict()
         return baseD
 
     def dictComparison(self, new_dict: Union['PathDict', dict]) -> Tuple[list, list]:
@@ -186,9 +186,10 @@ class PathDict(UserDict):
                         yield sub_x
                 else:
                     yield item
+        # TODO check if `obj.asDict()` is needed. Probably not...
         if isinstance(new_dict, PathDict):
-            new_dict = new_dict.toDict()
-        keyList, itemList = dictIterator(self.toDict(), new_dict)
+            new_dict = new_dict.asDict()
+        keyList, itemList = dictIterator(self.asDict(), new_dict)
         return prettyKey(keyList), list(flatten(itemList))
 
 
