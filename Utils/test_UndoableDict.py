@@ -1,4 +1,4 @@
-from PythonPlayground.Utils.DictTools import UndoableDict
+from Utils.DictTools import UndoableDict
 
 
 def test_non_nested_dict():
@@ -86,7 +86,7 @@ def test_nested_dict():
     # Add item
 
     d = UndoableDict(dict(a=1, b=2, c=dict(d=3, e=dict(f=4, g=5))))
-    d.clear()
+    d.clearUndoStack()
     assert d.undoText() == ""
     assert d.redoText() == ""
 
@@ -126,7 +126,7 @@ def test_bulk_update():
     # Add item
 
     d = UndoableDict(dict(a=1, b=2, c=dict(d=3, e=dict(f=4, g=5))))
-    d.clear()
+    d.clearUndoStack()
     assert d.undoText() == ""
     assert d.redoText() == ""
 
