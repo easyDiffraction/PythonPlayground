@@ -1,0 +1,3 @@
+{
+    "files": ["DictTools.py", "test_UndoableDict.py", "test_PathDict.py"]
+}
