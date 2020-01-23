@@ -1,4 +1,6 @@
 import pytest
+from ast import literal_eval
+from deepdiff import DeepDiff
 from typing import Union, Any, NoReturn, List, Iterable, Tuple
 from collections import UserDict
 from copy import deepcopy
@@ -121,6 +123,7 @@ class PathDict(UserDict):
             return self.get(key, default)
 
     def asDict(self) -> dict:
+        """Returns self as a python dictionary."""
         base_dict = deepcopy(self.data)
         for key in base_dict.keys():
             item = base_dict[key]
@@ -134,64 +137,23 @@ class PathDict(UserDict):
         :param new_dict: dict or PathDict to compare self to
         :return: path and value updates for self to become newDict
         """
-        def dictIterator(old_dict_in: dict, new_dict_in: dict) -> Tuple[list, list]:
-            """
-            Iterate through a dict and find all comparisons
-            :param old_dict_in: Base dictionary
-            :param new_dict_in: dictionary to compare to base dictionary
-            :return: list of update locations and list of update values
-            """
-            keyList = []
-            itemList = []
-            for key, item in new_dict_in.items():
-                if key not in old_dict_in.keys():
-                    # The field does not exist in the old dict
-                    keyList.append(key)
-                    itemList.append(item)
-                else:
-                    # The key exists in both dicts
-                    tempItem = old_dict_in[key]
-                    if isinstance(item, dict):
-                        # Its a dictionary, so we have to call `dictComparison` again
-                        nestedKeyList, nestedItemList = dictIterator(tempItem, item)
-                        if len(nestedKeyList) > 0:
-                            keyList.append([key, nestedKeyList])
-                            itemList.append(nestedItemList)
-                    else:
-                        # We know that we're left with objects and numbers strings etc
-                        if item is not tempItem:
-                            # They are not the same. Boo
-                            keyList.append(key)
-                            itemList.append(item)
-            return keyList, itemList
+        this_dict = self.asDict()
+        another_dict = self.asDict()
+        if isinstance(new_dict, dict):
+            another_dict = new_dict
+        elif isinstance(new_dict, PathDict):
+            another_dict = new_dict.asDict()
 
-        def prettyKey(keylist: list) -> list:
-            """
-            Makes the key list into a UndoableDict path
-            """
-            for i, key in enumerate(keylist):
-                if isinstance(key, list):
-                    if len(key) == 1:
-                        keylist[i] = key[0]
-                    else:
-                        keylist[i] = prettyKey(key)
-            return keylist
+        diff = DeepDiff(this_dict, another_dict)
 
-        def flatten(items: list) -> list:
-            """
-            Yield items from any nested iterable
-            """
-            for item in items:
-                if isinstance(item, Iterable) and not isinstance(item, (str, bytes)):
-                    for sub_x in flatten(item):
-                        yield sub_x
-                else:
-                    yield item
-        # TODO check if `obj.asDict()` is needed. Probably not...
-        if isinstance(new_dict, PathDict):
-            new_dict = new_dict.asDict()
-        keyList, itemList = dictIterator(self.asDict(), new_dict)
-        return prettyKey(keyList), list(flatten(itemList))
+        key_list = []
+        value_list = []
+        if 'values_changed' in diff:
+            for path, values in diff['values_changed'].items():
+                key_list.append(literal_eval(path.replace("root", "").replace('][', ",")))
+                value_list.append(values['new_value'])
+
+        return key_list, value_list
 
 
 class UndoableDict(PathDict):
@@ -306,4 +268,16 @@ class UndoableDict(PathDict):
 
 if __name__ == "__main__":
     # Run unit tests
-    pytest.main(["-v"])
+    #pytest.main(["-v"])
+
+    d1 = PathDict(dict(a=1, b=2, c=dict(d=3, e=dict(f=4, g=5))))
+    d2 = PathDict(dict(a=1, b=2, c=dict(d=333, e=dict(f=4, g=555))))
+    print("A", d1.dictComparison(d2))
+
+    d1 = PathDict(dict(a=1, b=2, c=dict(d=3, e=dict(f=4, g=5))))
+    d2 = {'a': 1, 'b': 2, 'c': {'d': 333, 'e': {'f': 4, 'g': 555}}}
+    print("B", d1.dictComparison(d2))
+
+    d1 = PathDict(dict(a=1, b=2, c=dict(d=3, e=dict(f=4, g=5))))
+    d2 = "string"
+    print("C", d1.dictComparison(d2))
